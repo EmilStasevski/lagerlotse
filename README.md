@@ -2,7 +2,7 @@
 
 **In short (EN):** an internal-tools demo for a technical wholesaler. Staff ask questions in German, a Claude-based agent answers using a fixed set of typed database tools, and every number in the answer is checked against the tool results. Includes a dashboard and an automated weekly reorder report. All data is synthetic.
 
-> Status: Gerüst angelegt, MVP in Arbeit. Alle Zahlen in dieser Datei werden später von `task report` erzeugt.
+> Status: MVP in Arbeit. Daten, Lese-Tools und Zahlenprüfung stehen; Agent, Web-App und Dashboard folgen. Alle Zahlen in dieser Datei werden später von `task report` erzeugt.
 
 ## Worum es geht
 
@@ -25,10 +25,11 @@ Alle Daten sind **synthetisch** und mit festem Seed erzeugt. Es werden keine ech
 ## Schnellstart
 
 ```bash
-cp .env.example .env     # ANTHROPIC_API_KEY eintragen
+cp .env.example .env     # ANTHROPIC_API_KEY eintragen (nur für den Agenten nötig)
 task setup
 task up
 task data
+task test
 ```
 
 Danach: Chat unter http://localhost:8000, Dashboard unter http://localhost:3000.

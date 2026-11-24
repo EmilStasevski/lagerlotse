@@ -2,6 +2,13 @@
 
 Ziel: in etwa einer Woche ein vorführbares MVP, das drei Minuten Demo trägt.
 
+## Stand
+
+- [x] Meilenstein 1: Schema, Generator, Fixture-Daten; `task data` liefert reproduzierbar denselben Hash
+- [x] Meilenstein 2: acht Lese-Tools mit Tests gegen Fixture-Daten, Nur-Lese-Rolle
+- [x] Aus Meilenstein 3 vorgezogen: Tool-Registry (API-Tool-Definitionen) und Zahlenprüfung mit Tests
+- [ ] Meilenstein 3: Agent-Schleife und Evaluationsset (braucht `ANTHROPIC_API_KEY`)
+
 ## Meilensteine
 
 1. **Daten (Tag 1):** Schema, Seed-Generator, Fixture-Daten für Tests. Fertig, wenn `task data` zweimal denselben Hash liefert.

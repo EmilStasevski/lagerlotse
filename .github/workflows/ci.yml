@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: lagerlotse
+          POSTGRES_PASSWORD: lagerlotse
+          POSTGRES_DB: lagerlotse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lagerlotse"
+          --health-interval 5s
+          --health-retries 10
+    env:
+      LAGERLOTSE_TEST_DATABASE_URL: postgresql+psycopg://lagerlotse:lagerlotse@localhost:5432/lagerlotse_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest
+      - name: Seed is reproducible
+        run: |
+          uv run python -m lagerlotse.data.seed | tail -1 > first.txt
+          uv run python -m lagerlotse.data.seed | tail -1 > second.txt
+          cat first.txt
+          diff first.txt second.txt

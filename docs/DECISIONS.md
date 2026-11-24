@@ -10,3 +10,18 @@ Das Modell darf kein SQL schreiben, sondern nur feste Tools aufrufen. Das ist we
 
 ## 003 Server-seitiges HTML statt Single-Page-App
 Für eine interne Chat-Seite reichen Jinja und htmx. Kein JavaScript-Build, weniger Wartung.
+
+## 004 Fester Stichtag statt Systemdatum
+Synthetische Daten veralten, und „heute" ändert sich bei jedem Lauf. Der Generator schreibt einen festen Stichtag (`dataset_meta.as_of`, derzeit 2026-11-20) in die Datenbank; alle Tools rechnen mit diesem Datum statt mit `CURRENT_DATE`. Folge: Daten, Tests und Hash bleiben reproduzierbar, und der Agent muss relative Angaben („letztes Quartal") vom Stichtag aus auflösen.
+
+## 005 Einheitliche Kennzahlen-Definitionen
+Umsatz ist der Netto-Auftragswert aller nicht stornierten Aufträge nach Auftragsdatum, Rohertrag ist Umsatz minus Einkaufspreis zum Verkaufszeitpunkt. Die Definitionen stehen einmal in `data/queries.py` und in den Tool-Beschreibungen; Dashboard und Bericht übernehmen sie. Folge: Chat, Dashboard und Bericht zeigen dieselben Zahlen.
+
+## 006 „Verspätete Lieferungen" heißt Lieferantentreue
+Gemeint sind Wareneingänge von Lieferanten nach dem erwarteten Termin, nicht verspätete Auslieferungen an Kunden. Das passt zu Einkauf und Nachbestellung. Die Kundenseite (Wunschtermin, Versanddatum) liegt im Schema bereit und kann später ein eigenes Tool bekommen.
+
+## 007 Zahlenprüfung: streng bei Einheiten, tolerant nur beim Runden
+Jede Zahl und jedes Datum der Antwort muss in Tool-Eingaben, Tool-Ergebnissen oder der Frage vorkommen. Erlaubt ist nur Runden auf die angezeigte Genauigkeit (auch „1,7 Mio. €"); eine Zahl mit „€", „%" oder „Tage" passt nur zu einem Feld derselben Einheit. Listenlängen gelten als Tool-Zahl. Kleine Zahlen können zufällig passen; die Prüfung fängt erfundene Beträge zuverlässig, nicht jede Zählung. Folge: Antworten mit nicht belegten Zahlen werden als „ungeprüft" markiert, nie still angezeigt.
+
+## 008 Nachbestellregel
+Tagesbedarf aus den letzten 90 Tagen, Meldebestand = Tagesbedarf × (Lieferzeit + 14 Tage Sicherheit), Bestellmenge deckt zusätzlich 30 Tage und wird auf die Mindestbestellmenge aufgerundet. Bewusst einfach und erklärbar statt Prognosemodell; Parameter stehen als Konstanten in `data/queries.py`.

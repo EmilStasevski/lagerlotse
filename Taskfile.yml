@@ -2,21 +2,27 @@ version: "3"
 
 tasks:
   setup:
-    desc: Install dependencies
+    desc: Install dependencies and git hooks
     cmds:
       - uv sync
+      - uv run pre-commit install
   up:
     desc: Start postgres and metabase (app is added in milestone 4)
     cmds:
-      - docker compose up -d
+      - docker compose up -d --wait
+  db:
+    desc: Start only postgres (enough for data, tests and report)
+    cmds:
+      - docker compose up -d --wait postgres
   down:
     cmds:
       - docker compose down
   data:
-    desc: Create schema and seed synthetic data (added in milestone 1)
+    desc: Create schema and seed synthetic data (deterministic, prints a content hash)
     cmds:
       - uv run python -m lagerlotse.data.seed
   test:
+    desc: Run tests (needs postgres, see `task db`)
     cmds:
       - uv run pytest
   lint:
