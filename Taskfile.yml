@@ -1,0 +1,34 @@
+version: "3"
+
+tasks:
+  setup:
+    desc: Install dependencies
+    cmds:
+      - uv sync
+  up:
+    desc: Start postgres and metabase (app is added in milestone 4)
+    cmds:
+      - docker compose up -d
+  down:
+    cmds:
+      - docker compose down
+  data:
+    desc: Create schema and seed synthetic data (added in milestone 1)
+    cmds:
+      - uv run python -m lagerlotse.data.seed
+  test:
+    cmds:
+      - uv run pytest
+  lint:
+    cmds:
+      - uv run ruff check .
+      - uv run ruff format --check .
+      - uv run mypy
+  eval:
+    desc: Run the agent evaluation set (needs ANTHROPIC_API_KEY)
+    cmds:
+      - uv run python -m lagerlotse.agent.eval
+  report:
+    desc: Generate weekly report and README tables from results/
+    cmds:
+      - uv run python -m lagerlotse.report
