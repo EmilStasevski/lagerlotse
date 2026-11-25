@@ -27,13 +27,27 @@ Zufallswerte erzeugen: `openssl rand -base64 24`. Die Datenbank-URLs setzt `comp
 ## 2. Starten und Daten laden
 
 ```bash
+docker compose up -d --build --wait postgres
+docker compose run --rm -T app python -m lagerlotse.data.seed   # legt auch die Lese-Rolle an
 docker compose up -d --build --wait
-docker compose run --rm app python -m lagerlotse.data.seed
-docker compose run --rm -e LAGERLOTSE_METABASE_URL=http://metabase:3000 \
+docker compose run --rm -T -e LAGERLOTSE_METABASE_URL=http://metabase:3000 \
   app python scripts/metabase_setup.py
 ```
 
-Alle Ports binden nur an `127.0.0.1`. Von außen ist zunächst nichts erreichbar.
+Reihenfolge beachten: Die App meldet sich erst „healthy", wenn die Daten und die Lese-Rolle existieren. Alle Ports binden nur an `127.0.0.1`. Von außen ist zunächst nichts erreichbar.
+
+**Kleine Rechner:** Der Stack läuft auch auf einem Thin Client mit 4 GB RAM (getestet: Celeron J1900, Ubuntu 24.04). Metabase ist dafür auf 1 GB Heap begrenzt (`MB_JAVA_OPTS`); der erste Start dauert dort einige Minuten.
+
+### Variante: nur privat über Tailscale
+
+Ohne Domain und ohne offene Ports: Läuft auf dem Server bereits Tailscale, veröffentlicht `tailscale serve` die Dienste nur im eigenen Tailnet, mit HTTPS-Zertifikat:
+
+```bash
+sudo tailscale serve --bg --https=443  http://127.0.0.1:8000   # Web-App
+sudo tailscale serve --bg --https=8443 http://127.0.0.1:3000   # Dashboard
+```
+
+Beim ersten Mal muss „Serve" in der Tailscale-Verwaltung freigegeben werden (der Befehl nennt den Link). Abschnitte 3 und 4 entfallen dann.
 
 ## 3. Web-App über HTTPS veröffentlichen
 
@@ -58,10 +72,10 @@ ssh -L 3000:127.0.0.1:3000 user@server   # danach http://localhost:3000
 
 ## 5. Wöchentlicher Bericht
 
-Cron auf dem Host, montags 6 Uhr:
+Cron des Benutzers, der Docker ausführen darf (`crontab -e`), montags 6 Uhr:
 
 ```
-0 6 * * 1  cd /opt/lagerlotse && docker compose run --rm -T app python -m lagerlotse.report /app/reports >> /var/log/lagerlotse-report.log 2>&1
+0 6 * * 1  cd /opt/lagerlotse && docker compose run --rm -T app python -m lagerlotse.report /app/reports >> $HOME/lagerlotse-report.log 2>&1
 ```
 
 Die Dateien landen in `/opt/lagerlotse/reports/`. Die Seite `/bericht` der Web-App rechnet bei jedem Aufruf neu.

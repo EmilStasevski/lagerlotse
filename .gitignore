@@ -8,5 +8,6 @@ __pycache__/
 .pytest_cache/
 *.dump
 *.sql.gz
-reports/
+reports/*
+!reports/.gitkeep
 results/eval-partial.json
