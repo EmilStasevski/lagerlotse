@@ -30,6 +30,10 @@ tasks:
       - uv run ruff check .
       - uv run ruff format --check .
       - uv run mypy
+  ask:
+    desc: 'Ask the agent one question, e.g. task ask -- "Welche Kunden ...?" (needs ANTHROPIC_API_KEY)'
+    cmds:
+      - uv run python -m lagerlotse.agent.cli {{.CLI_ARGS}}
   eval:
     desc: Run the agent evaluation set (needs ANTHROPIC_API_KEY)
     cmds:

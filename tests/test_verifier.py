@@ -96,3 +96,15 @@ def test_list_count_is_allowed() -> None:
 
 def test_no_tool_calls_means_numbers_are_unverified() -> None:
     assert check("Der Umsatz lag bei 500 €.", []).status == "unverified"
+
+
+def test_contains_figure() -> None:
+    from decimal import Decimal
+
+    from lagerlotse.agent.verifier import contains_figure
+
+    answer = "Umsatz 2025: 7.172.638,55 € (rund 7,2 Mio. €), Marge 40,8 %."
+    assert contains_figure(answer, Decimal("7172638.55"))
+    assert contains_figure(answer, Decimal("40.8"))
+    assert not contains_figure(answer, Decimal("7300000"))
+    assert not contains_figure("Stand 20.11.2026", Decimal("20"))

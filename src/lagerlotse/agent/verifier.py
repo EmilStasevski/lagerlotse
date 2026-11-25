@@ -266,3 +266,16 @@ def verify_answer(answer: str, calls: list[ToolCall], question: str = "") -> Ver
         "verified" if all(c.matched for c in checks) else "unverified"
     )
     return Verification(status=status, checks=checks)
+
+
+def contains_figure(text: str, expected: Decimal) -> bool:
+    """True if `text` shows `expected`, possibly rounded to the precision written there.
+
+    Used by the evaluation to check that an answer contains the figure computed by SQL.
+    """
+    _, _, rest = _dates(text)
+    for found in _numbers(rest):
+        tolerance = Decimal("0.5") * Decimal(10) ** -found.decimals * found.scale
+        if abs(found.value - abs(expected)) <= tolerance:
+            return True
+    return False

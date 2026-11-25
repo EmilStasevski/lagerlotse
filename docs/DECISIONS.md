@@ -25,3 +25,9 @@ Jede Zahl und jedes Datum der Antwort muss in Tool-Eingaben, Tool-Ergebnissen od
 
 ## 008 Nachbestellregel
 Tagesbedarf aus den letzten 90 Tagen, Meldebestand = Tagesbedarf × (Lieferzeit + 14 Tage Sicherheit), Bestellmenge deckt zusätzlich 30 Tage und wird auf die Mindestbestellmenge aufgerundet. Bewusst einfach und erklärbar statt Prognosemodell; Parameter stehen als Konstanten in `data/queries.py`.
+
+## 009 Eigene Agent-Schleife statt SDK-Tool-Runner
+Der Tool-Runner des Anthropic-SDK ist eine Beta-Hilfe und versteckt die Schleife. Wir schreiben die Schleife selbst (rund 60 Zeilen), weil jeder Tool-Aufruf für die Zahlenprüfung protokolliert und auf einer eigenen Nur-Lese-Verbindung ausgeführt wird, mit fester Obergrenze an Runden. Folge: keine Beta-Abhängigkeit in der Schleife, volle Kontrolle; Tests laufen mit einem Fake-Client ohne API-Kosten.
+
+## 010 Kosten und Ausfallsicherheit der API-Aufrufe
+Systemprompt und Tool-Definitionen sind bei jedem Aufruf gleich; automatisches Prompt-Caching senkt so die Input-Kosten stark (gemessen: eine typische Frage etwa 0,02 USD mit Sonnet 5.5). Modell und Denktiefe (`LAGERLOTSE_EFFORT`, Standard `medium`) kommen aus `.env`. Lehnt das Modell eine Anfrage aus Sicherheitsgründen ab, übernimmt serverseitig ein Ersatzmodell (`fallbacks: "default"`, abschaltbar über `LAGERLOTSE_REFUSAL_FALLBACK`). `task eval` bricht ab einer Kostengrenze ab (Standard 3 USD).
