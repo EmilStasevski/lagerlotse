@@ -9,6 +9,8 @@ COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --locked --no-install-project
 COPY src ./src
 RUN uv sync --locked
+COPY scripts ./scripts
+COPY dashboards ./dashboards
 
 RUN useradd --create-home --uid 1000 lagerlotse && mkdir -p /app/reports \
     && chown lagerlotse /app/reports
