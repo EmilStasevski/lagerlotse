@@ -52,6 +52,8 @@ services:
       - metabase-data:/metabase-data
     environment:
       MB_DB_FILE: /metabase-data/metabase.db
+      # Fixed heap so the stack fits a 4 GB machine (docs/DEPLOY.md); enough for this dashboard.
+      JAVA_OPTS: ${MB_JAVA_OPTS:--Xmx1g}
 
 volumes:
   pgdata:
