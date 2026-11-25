@@ -1,13 +1,19 @@
+# Local: `task up`. On a server, set POSTGRES_PASSWORD, LAGERLOTSE_READER_PASSWORD and
+# LAGERLOTSE_APP_KEY in .env (see docs/DEPLOY.md). Ports bind to localhost only.
+x-db-urls: &db-urls
+  LAGERLOTSE_DATABASE_URL: postgresql+psycopg://lagerlotse:${POSTGRES_PASSWORD:-lagerlotse}@postgres:5432/lagerlotse
+  LAGERLOTSE_READER_DATABASE_URL: postgresql+psycopg://lagerlotse_reader:${LAGERLOTSE_READER_PASSWORD:-lagerlotse_reader}@postgres:5432/lagerlotse
+
 services:
   postgres:
     image: postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_USER: lagerlotse
-      POSTGRES_PASSWORD: lagerlotse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lagerlotse}
       POSTGRES_DB: lagerlotse
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,10 +21,30 @@ services:
       interval: 5s
       retries: 10
 
-  metabase:
-    image: metabase/metabase:latest
+  app:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment: *db-urls
     ports:
-      - "3000:3000"
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./reports:/app/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      retries: 6
+
+  metabase:
+    image: metabase/metabase:v0.65.7.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
     depends_on:
       postgres:
         condition: service_healthy

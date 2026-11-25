@@ -7,9 +7,9 @@ tasks:
       - uv sync
       - uv run pre-commit install
   up:
-    desc: Start postgres and metabase (app is added in milestone 4)
+    desc: Build and start postgres, app (http://localhost:8000) and metabase (http://localhost:3000)
     cmds:
-      - docker compose up -d --wait
+      - docker compose up -d --build --wait
   db:
     desc: Start only postgres (enough for data, tests and report)
     cmds:
@@ -42,6 +42,10 @@ tasks:
     desc: Run the agent evaluation set (needs ANTHROPIC_API_KEY)
     cmds:
       - uv run python -m lagerlotse.agent.eval
+  dashboard:
+    desc: Create the Metabase dashboard from dashboards/metabase.yaml (needs `task up` and `task data`)
+    cmds:
+      - uv run python scripts/metabase_setup.py
   report:
     desc: Generate weekly report and README tables from results/
     cmds:

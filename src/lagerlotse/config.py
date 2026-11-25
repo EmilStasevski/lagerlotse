@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     max_tool_rounds: int = 6
     # Shared access key for the web app. Empty = no login (local development only).
     app_key: SecretStr = Field(default=SecretStr(""))
+    # Metabase admin for `task dashboard` (scripts/metabase_setup.py); never committed.
+    mb_admin_email: str = Field(default="", validation_alias="MB_ADMIN_EMAIL")
+    mb_admin_password: SecretStr = Field(
+        default=SecretStr(""), validation_alias="MB_ADMIN_PASSWORD"
+    )
+    metabase_url: str = "http://localhost:3000"
     seed: int = 42
 
 

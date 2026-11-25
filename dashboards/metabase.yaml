@@ -1,0 +1,144 @@
+# Metabase dashboard "Lagerlotse Überblick", created by `task dashboard`
+# (scripts/metabase_setup.py). Every card is plain SQL on the read-only role.
+#
+# Definitions match the agent's tools (docs/DECISIONS.md 005):
+#   Umsatz = net order value of all orders not cancelled, by order date
+#   Rohertrag = Umsatz minus purchase cost at time of sale
+#   "today" = dataset_meta.as_of (the dataset's reference date), never CURRENT_DATE
+#
+# Layout: Metabase grid with 24 columns; row/col/size_x/size_y per card.
+
+dashboard: Lagerlotse Überblick
+description: Umsatz, Marge, Lager und Lieferanten. Synthetische Daten, Stichtag aus dataset_meta.
+
+cards:
+  - name: Umsatz laufendes Jahr (EUR)
+    display: scalar
+    position: {row: 0, col: 0, size_x: 6, size_y: 3}
+    sql: |
+      SELECT round(sum(l.quantity * l.unit_price), 2) AS umsatz_eur
+      FROM orders o JOIN order_lines l ON l.order_id = o.id
+      WHERE o.status <> 'cancelled'
+        AND o.order_date BETWEEN date_trunc('year', (SELECT value::date FROM dataset_meta WHERE key = 'as_of'))
+                             AND (SELECT value::date FROM dataset_meta WHERE key = 'as_of')
+
+  - name: Marge laufendes Jahr (%)
+    display: scalar
+    position: {row: 0, col: 6, size_x: 6, size_y: 3}
+    sql: |
+      SELECT round(100 * sum(l.quantity * (l.unit_price - l.unit_cost)) / sum(l.quantity * l.unit_price), 1) AS marge_pct
+      FROM orders o JOIN order_lines l ON l.order_id = o.id
+      WHERE o.status <> 'cancelled'
+        AND o.order_date BETWEEN date_trunc('year', (SELECT value::date FROM dataset_meta WHERE key = 'as_of'))
+                             AND (SELECT value::date FROM dataset_meta WHERE key = 'as_of')
+
+  - name: Lagerwert Ladenhüter, 180 Tage ohne Verkauf (EUR)
+    display: scalar
+    position: {row: 0, col: 12, size_x: 6, size_y: 3}
+    sql: |
+      WITH as_of AS (SELECT value::date AS d FROM dataset_meta WHERE key = 'as_of'),
+      last_sale AS (
+        SELECT l.product_id, max(o.order_date) AS last_sale
+        FROM orders o JOIN order_lines l ON l.order_id = o.id
+        WHERE o.status <> 'cancelled' GROUP BY 1)
+      SELECT round(sum(st.on_hand * p.purchase_price), 2) AS lagerwert_eur
+      FROM products p JOIN stock st ON st.product_id = p.id
+      LEFT JOIN last_sale ls ON ls.product_id = p.id CROSS JOIN as_of
+      WHERE st.on_hand > 0 AND (ls.last_sale IS NULL OR as_of.d - ls.last_sale >= 180)
+
+  - name: Offene Einkaufsbestellungen (EUR)
+    display: scalar
+    position: {row: 0, col: 18, size_x: 6, size_y: 3}
+    sql: |
+      SELECT round(sum(pl.quantity * pl.unit_cost), 2) AS offen_eur
+      FROM purchase_orders po JOIN purchase_order_lines pl ON pl.po_id = po.id
+      WHERE po.status = 'open'
+
+  - name: Umsatz und Rohertrag je Monat
+    display: line
+    dimension: monat
+    metrics: [umsatz_eur, rohertrag_eur]
+    position: {row: 3, col: 0, size_x: 16, size_y: 7}
+    sql: |
+      SELECT date_trunc('month', o.order_date)::date AS monat,
+             round(sum(l.quantity * l.unit_price), 2) AS umsatz_eur,
+             round(sum(l.quantity * (l.unit_price - l.unit_cost)), 2) AS rohertrag_eur
+      FROM orders o JOIN order_lines l ON l.order_id = o.id
+      WHERE o.status <> 'cancelled'
+      GROUP BY 1 ORDER BY 1
+
+  - name: Marge je Kategorie, laufendes Jahr (%)
+    display: bar
+    dimension: kategorie
+    metrics: [marge_pct]
+    position: {row: 3, col: 16, size_x: 8, size_y: 7}
+    sql: |
+      SELECT p.category AS kategorie,
+             round(100 * sum(l.quantity * (l.unit_price - l.unit_cost)) / sum(l.quantity * l.unit_price), 1) AS marge_pct
+      FROM orders o JOIN order_lines l ON l.order_id = o.id JOIN products p ON p.id = l.product_id
+      WHERE o.status <> 'cancelled'
+        AND o.order_date BETWEEN date_trunc('year', (SELECT value::date FROM dataset_meta WHERE key = 'as_of'))
+                             AND (SELECT value::date FROM dataset_meta WHERE key = 'as_of')
+      GROUP BY 1 ORDER BY 2 DESC
+
+  - name: Kritische Lagerreichweite (bis 14 Tage)
+    display: table
+    position: {row: 10, col: 0, size_x: 12, size_y: 8}
+    sql: |
+      WITH as_of AS (SELECT value::date AS d FROM dataset_meta WHERE key = 'as_of'),
+      demand AS (
+        SELECT l.product_id, sum(l.quantity) / 90.0 AS daily
+        FROM orders o JOIN order_lines l ON l.order_id = o.id CROSS JOIN as_of
+        WHERE o.status <> 'cancelled' AND o.order_date BETWEEN as_of.d - 89 AND as_of.d
+        GROUP BY 1)
+      SELECT p.sku AS artikel, p.name AS bezeichnung, st.on_hand - st.reserved AS verfuegbar,
+             round(d.daily, 2) AS tagesbedarf, round((st.on_hand - st.reserved) / d.daily, 1) AS reichweite_tage
+      FROM products p JOIN stock st ON st.product_id = p.id JOIN demand d ON d.product_id = p.id
+      WHERE p.active AND (st.on_hand - st.reserved) / d.daily <= 14
+      ORDER BY reichweite_tage, artikel
+
+  - name: Ladenhüter nach Lagerwert
+    display: table
+    position: {row: 10, col: 12, size_x: 12, size_y: 8}
+    sql: |
+      WITH as_of AS (SELECT value::date AS d FROM dataset_meta WHERE key = 'as_of'),
+      last_sale AS (
+        SELECT l.product_id, max(o.order_date) AS last_sale
+        FROM orders o JOIN order_lines l ON l.order_id = o.id
+        WHERE o.status <> 'cancelled' GROUP BY 1)
+      SELECT p.sku AS artikel, p.name AS bezeichnung, ls.last_sale AS letzter_verkauf,
+             as_of.d - ls.last_sale AS tage_ohne_verkauf, st.on_hand AS bestand,
+             round(st.on_hand * p.purchase_price, 2) AS lagerwert_eur
+      FROM products p JOIN stock st ON st.product_id = p.id
+      LEFT JOIN last_sale ls ON ls.product_id = p.id CROSS JOIN as_of
+      WHERE st.on_hand > 0 AND (ls.last_sale IS NULL OR as_of.d - ls.last_sale >= 180)
+      ORDER BY lagerwert_eur DESC
+
+  - name: Verspätete Wareneingänge je Lieferant, letzte 12 Monate (%)
+    display: bar
+    dimension: lieferant
+    metrics: [verspaetet_pct]
+    position: {row: 18, col: 0, size_x: 12, size_y: 7}
+    sql: |
+      WITH as_of AS (SELECT value::date AS d FROM dataset_meta WHERE key = 'as_of')
+      SELECT s.name AS lieferant,
+             round(100.0 * count(*) FILTER (WHERE po.received_date > po.expected_date)
+                   / nullif(count(*) FILTER (WHERE po.status = 'received'), 0), 1) AS verspaetet_pct
+      FROM purchase_orders po JOIN suppliers s ON s.id = po.supplier_id CROSS JOIN as_of
+      WHERE po.expected_date BETWEEN as_of.d - 364 AND as_of.d
+      GROUP BY s.name ORDER BY verspaetet_pct DESC NULLS LAST
+
+  - name: Top 10 Kunden, letztes abgeschlossenes Quartal
+    display: table
+    position: {row: 18, col: 12, size_x: 12, size_y: 7}
+    sql: |
+      WITH q AS (
+        SELECT (date_trunc('quarter', value::date) - interval '3 months')::date AS start,
+               (date_trunc('quarter', value::date) - interval '1 day')::date AS stop
+        FROM dataset_meta WHERE key = 'as_of')
+      SELECT c.customer_no AS kunde_nr, c.name AS kunde, round(sum(l.quantity * l.unit_price), 2) AS umsatz_eur,
+             count(DISTINCT o.id) AS auftraege
+      FROM orders o JOIN order_lines l ON l.order_id = o.id JOIN customers c ON c.id = o.customer_id
+      CROSS JOIN q
+      WHERE o.status <> 'cancelled' AND o.order_date BETWEEN q.start AND q.stop
+      GROUP BY c.id ORDER BY umsatz_eur DESC LIMIT 10

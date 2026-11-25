@@ -34,3 +34,6 @@ Systemprompt und Tool-Definitionen sind bei jedem Aufruf gleich; automatisches P
 
 ## 011 Web-App: serverseitig, ein gemeinsamer Schlüssel, Gespräche nur im Speicher
 FastAPI mit Jinja-Templates und htmx (per CDN, feste Version), kein Build-Schritt. Zugang über einen gemeinsamen Schlüssel (`LAGERLOTSE_APP_KEY`, Cookie oder `X-API-Key`); echte Benutzer und Rollen sind ein späterer Schritt. Gespräche liegen nur im Arbeitsspeicher (höchstens 6 Fragen je Sitzung, 500 Sitzungen) und werden nicht protokolliert. Die Markdown-Antwort des Modells wird mit `markdown-it-py` ohne Roh-HTML gerendert; nicht belegte Zahlen werden im Text markiert. Folge: einfach zu betreiben, aber nur für eine Instanz geeignet.
+
+## 012 Dashboard als Code
+Metabase speichert Dashboards in seiner eigenen Datenbank; ein Export davon ist schwer zu prüfen. Wir beschreiben die Karten als SQL in `dashboards/metabase.yaml` und legen sie per API an (`task dashboard`). Folge: Dashboard ist versioniert und reproduzierbar, ein Test vergleicht Karten mit Tool-Ergebnissen; Änderungen in der Oberfläche werden beim nächsten Lauf überschrieben.
