@@ -97,7 +97,8 @@ class Agent:
             api_key=self.settings.anthropic_api_key.get_secret_value() or None
         )
         with engine.connect() as conn:
-            self.system = system_prompt(get_as_of(conn))
+            self.as_of = get_as_of(conn)
+        self.system = system_prompt(self.as_of)
         self.tools = tool_specs()
 
     def _create(self, messages: list[dict[str, Any]]) -> Any:
@@ -189,7 +190,7 @@ class Agent:
             answer=answer,
             status=status,
             tool_calls=calls,
-            verification=verify_answer(answer, context_calls, context_questions),
+            verification=verify_answer(answer, context_calls, context_questions, self.as_of),
             usage=usage,
             model=self.settings.model,
         )

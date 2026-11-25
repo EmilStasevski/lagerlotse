@@ -42,3 +42,33 @@ def test_write_report(conn: Connection, tmp_path: Path) -> None:
     ]
     html = paths[1].read_text(encoding="utf-8")
     assert "<td>Kabelbinder A</td>" in html
+
+
+def test_update_readme_from_eval_results(tmp_path: Path) -> None:
+    import json
+
+    from lagerlotse.report import update_readme
+
+    run = {
+        "model": "m", "effort": "medium", "started_at": "2026-11-25T10:00:00",
+        "dataset_as_of": "2026-11-20",
+        "summary": {
+            "passed": 1, "total": 2, "by_category": {"answerable": {"passed": 1, "total": 2}},
+            "answers_verified": 1, "answers_with_numbers": 2, "tool_selection_correct": 2,
+            "cost_usd": 0.04, "avg_cost_usd": 0.02, "avg_seconds": 3.5,
+        },
+        "results": [
+            {"id": "a1", "question": "Q1?", "passed": True, "failures": []},
+            {"id": "a2", "question": "Q2?", "passed": False, "failures": ["Zahl fehlt"]},
+        ],
+    }  # fmt: skip
+    results = tmp_path / "eval.json"
+    results.write_text(json.dumps(run))
+    readme = tmp_path / "README.md"
+    readme.write_text("Intro\n<!-- eval:start -->\nalt\n<!-- eval:end -->\nEnde\n")
+
+    assert update_readme(readme, results)
+    text = readme.read_text()
+    assert "| Direkt beantwortbar | 1 von 2 |" in text
+    assert "`a2` Q2? – Zahl fehlt" in text
+    assert "alt" not in text and text.startswith("Intro") and text.endswith("Ende\n")

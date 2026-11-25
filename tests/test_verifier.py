@@ -108,3 +108,18 @@ def test_contains_figure() -> None:
     assert contains_figure(answer, Decimal("40.8"))
     assert not contains_figure(answer, Decimal("7300000"))
     assert not contains_figure("Stand 20.11.2026", Decimal("20"))
+
+
+def test_table_rank_column_is_layout() -> None:
+    table = "| Rang | Kunde | Umsatz |\n|---|---|---|\n| 1 | Wendrich | 70.501,02 € |\n"
+    assert check(table).status == "verified"
+    assert check("| Wendrich | 7 |").status == "unverified"  # not the first column
+
+
+def test_reference_date_and_nearby_years_are_known() -> None:
+    from datetime import date
+
+    answer = "Stand 20.11.2026: Für 2027 habe ich keine Daten."
+    assert verify_answer(answer, [], as_of=date(2026, 11, 20)).status == "verified"
+    assert verify_answer(answer, []).status == "unverified"
+    assert verify_answer("Im Jahr 2040", [], as_of=date(2026, 11, 20)).status == "unverified"

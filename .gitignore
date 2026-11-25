@@ -9,3 +9,4 @@ __pycache__/
 *.dump
 *.sql.gz
 reports/
+results/eval-partial.json

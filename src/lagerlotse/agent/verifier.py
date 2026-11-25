@@ -37,7 +37,11 @@ DATE_PATTERNS = [
 IGNORED_PATTERNS = [
     re.compile(r"(?<![\d.,])[1-4]\.\s*(?:Quartal|Halbjahr)", re.I),
     re.compile(r"^\s*\d{1,2}[.)]\s", re.M),
+    # Rank column in a Markdown table: "| 1 | KB-10035 | ..." is layout, not a figure.
+    re.compile(r"^\|\s*\d{1,2}\s*(?=\|)", re.M),
 ]
+# Years within this distance of the reference date count as period names, not figures.
+YEAR_SPAN = 10
 NUMBER_RE = re.compile(
     r"""
     (?<![\w.,])(?<!\w-)                      # not part of an identifier like KB-10001
@@ -108,7 +112,9 @@ def _walk(value: Any, path: str, field: str) -> Iterator[tuple[str, str, Any]]:
         yield path, field, value
 
 
-def _collect(calls: list[ToolCall], question: str) -> tuple[list[_Known], set[date]]:
+def _collect(
+    calls: list[ToolCall], question: str, as_of: date | None
+) -> tuple[list[_Known], set[date]]:
     known: list[_Known] = []
     dates: set[date] = set()
     for call in calls:
@@ -134,6 +140,10 @@ def _collect(calls: list[ToolCall], question: str) -> tuple[list[_Known], set[da
         known.append(_Known(value=found.value, unit=None, source="Frage"))
     for found_date in _dates(question)[0]:
         dates.add(found_date)
+    if as_of is not None:
+        dates.add(as_of)
+        for year in range(as_of.year - YEAR_SPAN, as_of.year + 2):
+            known.append(_Known(value=Decimal(year), unit=None, source="Jahr nahe Stichtag"))
     for d in list(dates):
         known.append(_Known(value=Decimal(d.year), unit=None, source=f"Jahr aus {d}"))
     return known, dates
@@ -222,8 +232,12 @@ def _match(found: _Found, known: list[_Known]) -> _Known | None:
     return None
 
 
-def verify_answer(answer: str, calls: list[ToolCall], question: str = "") -> Verification:
-    known, known_dates = _collect(calls, question)
+def verify_answer(
+    answer: str, calls: list[ToolCall], question: str = "", as_of: date | None = None
+) -> Verification:
+    """Check every number and date in `answer` against tool calls, the question and the
+    dataset's reference date `as_of` (which the agent knows from its system prompt)."""
+    known, known_dates = _collect(calls, question, as_of)
     full_dates, partial_dates, rest = _dates(answer)
     checks: list[NumberCheck] = []
 

@@ -376,6 +376,7 @@ class StockCoverageRow(BaseModel):
 class StockCoverageResult(BaseModel):
     as_of: date
     demand_window: Period
+    demand_window_days: int
     matching_products: int
     products: list[StockCoverageRow]
 
@@ -467,6 +468,7 @@ def stock_coverage(conn: Connection, params: StockCoverageInput) -> StockCoverag
     return StockCoverageResult(
         as_of=as_of,
         demand_window=_demand_window(as_of),
+        demand_window_days=DEMAND_WINDOW_DAYS,
         matching_products=len(rows),
         products=rows[: params.limit],
     )
@@ -658,6 +660,7 @@ class LateDeliveriesResult(BaseModel):
     deliveries_received: int
     late_deliveries: int
     late_share_pct: Decimal
+    on_time_share_pct: Decimal
     suppliers: list[SupplierDeliveryRow]
 
 
@@ -665,7 +668,8 @@ def late_deliveries(conn: Connection, params: LateDeliveriesInput) -> LateDelive
     """Liefertreue der Lieferanten: verspätete Wareneingänge in einem Zeitraum.
 
     Betrachtet Einkaufsbestellungen, deren erwarteter Liefertermin im Zeitraum liegt.
-    Verspätet = Wareneingang nach dem erwarteten Termin. Zusätzlich je Lieferant die
+    Verspätet = Wareneingang nach dem erwarteten Termin; on_time_share_pct ist der pünktliche
+    Anteil. Zusätzlich je Lieferant die
     Zahl der offenen, bereits überfälligen Bestellungen. Sortiert nach Verspätungsquote.
     """
     as_of = get_as_of(conn)
@@ -709,6 +713,7 @@ def late_deliveries(conn: Connection, params: LateDeliveriesInput) -> LateDelive
         deliveries_received=received,
         late_deliveries=late,
         late_share_pct=_pct(Decimal(late), Decimal(received)),
+        on_time_share_pct=_pct(Decimal(received - late), Decimal(received)),
         suppliers=suppliers,
     )
 
@@ -744,6 +749,7 @@ class ReorderRow(BaseModel):
 class ReorderSuggestionsResult(BaseModel):
     as_of: date
     demand_window: Period
+    demand_window_days: int
     safety_days: int
     target_extra_days: int
     suggestion_count: int
@@ -799,6 +805,7 @@ def reorder_suggestions(
     return ReorderSuggestionsResult(
         as_of=as_of,
         demand_window=_demand_window(as_of),
+        demand_window_days=DEMAND_WINDOW_DAYS,
         safety_days=SAFETY_DAYS,
         target_extra_days=TARGET_EXTRA_DAYS,
         suggestion_count=len(suggestions),

@@ -2,7 +2,7 @@
 
 **In short (EN):** an internal-tools demo for a technical wholesaler. Staff ask questions in German, a Claude-based agent answers using a fixed set of typed database tools, and every number in the answer is checked against the tool results. Includes a dashboard and an automated weekly reorder report. All data is synthetic.
 
-> Status: MVP in Arbeit. Daten, Lese-Tools und Zahlenprüfung stehen; Agent, Web-App und Dashboard folgen. Alle Zahlen in dieser Datei werden später von `task report` erzeugt.
+> Status: MVP in Arbeit. Daten, Lese-Tools, Zahlenprüfung, Assistent und Evaluation stehen; Web-App und Dashboard folgen. Alle Zahlen in dieser Datei werden später von `task report` erzeugt.
 
 ## Worum es geht
 
@@ -21,6 +21,29 @@ Alle Daten sind **synthetisch** und mit festem Seed erzeugt. Es werden keine ech
 | Dashboard | Metabase |
 | Automatisierung | Wöchentlicher Bericht mit Nachbestellvorschlägen |
 | Betrieb | Docker Compose, GitHub Actions, Deployment auf einer kleinen VM |
+
+## Evaluation
+
+40 Testfragen in vier Kategorien (`tests/eval/questions.yaml`). Die erwarteten Zahlen berechnet eigenes SQL, unabhängig vom Tool-Code. Eine Frage gilt als bestanden, wenn die richtigen Tools aufgerufen wurden, die erwarteten Zahlen in der Antwort stehen und die Zahlenprüfung keine unbelegte Zahl findet. Die Tabelle erzeugt `task report` aus `results/eval.json`.
+
+<!-- eval:start -->
+Stand: Lauf vom 25.11.2026, Modell `claude-sonnet-5-5`, Denktiefe `medium`, Datenstand 20.11.2026.
+
+| Kategorie | bestanden |
+|---|--:|
+| Direkt beantwortbar | 22 von 22 |
+| Mehrere Schritte | 7 von 8 |
+| Außerhalb des Umfangs | 5 von 5 |
+| Manipulationsversuche | 5 von 5 |
+| **Gesamt** | **39 von 40** |
+
+- Antworten mit Zahlen, bei denen jede Zahl belegt war: 33 von 34
+- Richtige Tool-Auswahl: 40 von 40
+- Kosten des Laufs: 0,75 USD (Ø 0,019 USD je Frage), Ø 4,1 s je Frage
+
+Nicht bestanden:
+- `m04` Welche Lieferanten haben überfällige Bestellungen, und wie war ihre Liefertreue in diesem Jahr? – Ungeprüfte Zahlen: 55,6 %
+<!-- eval:end -->
 
 ## Schnellstart
 
