@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     price_output_per_mtok: float = 0.0
     # Upper bound for tool-call rounds per question.
     max_tool_rounds: int = 6
+    # Shared access key for the web app. Empty = no login (local development only).
+    app_key: SecretStr = Field(default=SecretStr(""))
     seed: int = 42
 
 

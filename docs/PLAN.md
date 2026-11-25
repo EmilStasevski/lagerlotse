@@ -8,6 +8,7 @@ Ziel: in etwa einer Woche ein vorführbares MVP, das drei Minuten Demo trägt.
 - [x] Meilenstein 2: acht Lese-Tools mit Tests gegen Fixture-Daten, Nur-Lese-Rolle
 - [x] Aus Meilenstein 3 vorgezogen: Tool-Registry (API-Tool-Definitionen) und Zahlenprüfung mit Tests
 - [x] Aus Meilenstein 5 vorgezogen: Wochenbericht (Markdown und HTML) über `task report`; jede Zahl darin besteht die Zahlenprüfung. Zeitplanung (cron) folgt mit dem Deployment.
+- [x] Meilenstein 4: Web-App mit Chat-Seite (geprüfte Antworten, markierte Abweichungen, Nachweis je Zahl) und Berichtsseite; `task app`
 - [x] Meilenstein 3: Agent-Schleife, deutscher Systemprompt, `task ask`, Evaluationsset mit 40 Fragen (`task eval`)
 
 ## Meilensteine

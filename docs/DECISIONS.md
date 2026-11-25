@@ -21,7 +21,7 @@ Umsatz ist der Netto-Auftragswert aller nicht stornierten Aufträge nach Auftrag
 Gemeint sind Wareneingänge von Lieferanten nach dem erwarteten Termin, nicht verspätete Auslieferungen an Kunden. Das passt zu Einkauf und Nachbestellung. Die Kundenseite (Wunschtermin, Versanddatum) liegt im Schema bereit und kann später ein eigenes Tool bekommen.
 
 ## 007 Zahlenprüfung: streng bei Einheiten, tolerant nur beim Runden
-Jede Zahl und jedes Datum der Antwort muss in Tool-Eingaben, Tool-Ergebnissen oder der Frage vorkommen. Erlaubt ist nur Runden auf die angezeigte Genauigkeit (auch „1,7 Mio. €"); eine Zahl mit „€", „%" oder „Tage" passt nur zu einem Feld derselben Einheit. Listenlängen gelten als Tool-Zahl. Kleine Zahlen können zufällig passen; die Prüfung fängt erfundene Beträge zuverlässig, nicht jede Zählung. Folge: Antworten mit nicht belegten Zahlen werden als „ungeprüft" markiert, nie still angezeigt.
+Jede Zahl und jedes Datum der Antwort muss in Tool-Eingaben, Tool-Ergebnissen oder der Frage vorkommen. Erlaubt ist nur Runden auf die angezeigte Genauigkeit (auch „1,7 Mio. €"); eine Zahl mit „€", „%" oder „Tage" passt nur zu einem Feld derselben Einheit. Listenlängen gelten als Tool-Zahl. Kleine Zahlen können zufällig passen; die Prüfung fängt erfundene Beträge zuverlässig, nicht jede Zählung. Ausgeschriebene Zahlwörter („acht Artikel") werden nicht geprüft; das ist eine bekannte Grenze. Folge: Antworten mit nicht belegten Zahlen werden als „ungeprüft" markiert, nie still angezeigt.
 
 ## 008 Nachbestellregel
 Tagesbedarf aus den letzten 90 Tagen, Meldebestand = Tagesbedarf × (Lieferzeit + 14 Tage Sicherheit), Bestellmenge deckt zusätzlich 30 Tage und wird auf die Mindestbestellmenge aufgerundet. Bewusst einfach und erklärbar statt Prognosemodell; Parameter stehen als Konstanten in `data/queries.py`.
@@ -31,3 +31,6 @@ Der Tool-Runner des Anthropic-SDK ist eine Beta-Hilfe und versteckt die Schleife
 
 ## 010 Kosten und Ausfallsicherheit der API-Aufrufe
 Systemprompt und Tool-Definitionen sind bei jedem Aufruf gleich; automatisches Prompt-Caching senkt so die Input-Kosten stark (gemessen: eine typische Frage etwa 0,02 USD mit Sonnet 5.5). Modell und Denktiefe (`LAGERLOTSE_EFFORT`, Standard `medium`) kommen aus `.env`. Lehnt das Modell eine Anfrage aus Sicherheitsgründen ab, übernimmt serverseitig ein Ersatzmodell (`fallbacks: "default"`, abschaltbar über `LAGERLOTSE_REFUSAL_FALLBACK`). `task eval` bricht ab einer Kostengrenze ab (Standard 3 USD).
+
+## 011 Web-App: serverseitig, ein gemeinsamer Schlüssel, Gespräche nur im Speicher
+FastAPI mit Jinja-Templates und htmx (per CDN, feste Version), kein Build-Schritt. Zugang über einen gemeinsamen Schlüssel (`LAGERLOTSE_APP_KEY`, Cookie oder `X-API-Key`); echte Benutzer und Rollen sind ein späterer Schritt. Gespräche liegen nur im Arbeitsspeicher (höchstens 6 Fragen je Sitzung, 500 Sitzungen) und werden nicht protokolliert. Die Markdown-Antwort des Modells wird mit `markdown-it-py` ohne Roh-HTML gerendert; nicht belegte Zahlen werden im Text markiert. Folge: einfach zu betreiben, aber nur für eine Instanz geeignet.

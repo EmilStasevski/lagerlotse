@@ -17,6 +17,10 @@ tasks:
   down:
     cmds:
       - docker compose down
+  app:
+    desc: Run the web app locally with reload on http://localhost:8000
+    cmds:
+      - uv run uvicorn --factory lagerlotse.api.app:app_factory --reload --port 8000
   data:
     desc: Create schema and seed synthetic data (deterministic, prints a content hash)
     cmds:
