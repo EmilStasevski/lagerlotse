@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Anmelden – Lagerlotse{% endblock %}
+{% block content %}
+<form method="post" action="/anmelden" style="max-width:24rem;margin:3rem auto;display:grid;gap:.75rem">
+  <label for="key"><strong>Zugangsschlüssel</strong></label>
+  <input id="key" type="password" name="key" required autofocus autocomplete="current-password">
+  {% if error %}<p style="color:var(--warn);margin:0">Der Schlüssel ist nicht korrekt.</p>{% endif %}
+  <button class="primary" type="submit">Anmelden</button>
+  <p class="muted">Demo mit synthetischen Daten. Den Schlüssel erhalten Sie vom Betreiber.</p>
+</form>
+{% endblock %}

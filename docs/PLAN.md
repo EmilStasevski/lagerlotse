@@ -2,6 +2,18 @@
 
 Ziel: in etwa einer Woche ein vorführbares MVP, das drei Minuten Demo trägt.
 
+## Stand
+
+- [x] Meilenstein 1: Schema, Generator, Fixture-Daten; `task data` liefert reproduzierbar denselben Hash
+- [x] Meilenstein 2: acht Lese-Tools mit Tests gegen Fixture-Daten, Nur-Lese-Rolle
+- [x] Aus Meilenstein 3 vorgezogen: Tool-Registry (API-Tool-Definitionen) und Zahlenprüfung mit Tests
+- [x] Aus Meilenstein 5 vorgezogen: Wochenbericht (Markdown und HTML) über `task report`; jede Zahl darin besteht die Zahlenprüfung. Zeitplanung (cron) folgt mit dem Deployment.
+- [x] Meilenstein 6: Deployment-Anleitung (`docs/DEPLOY.md`, HTTPS über Reverse Proxy, Metabase per SSH-Tunnel, Wochenbericht per Cron), Demo-Skript, README aus `results/`
+- [x] Meilenstein 5: Metabase-Dashboard mit 10 Karten als Code (`task dashboard`), gleiche Zahlen wie die Tools (getestet)
+- [x] Docker: App-Image, `task up` startet Postgres, App und Metabase (Ports nur auf localhost)
+- [x] Meilenstein 4: Web-App mit Chat-Seite (geprüfte Antworten, markierte Abweichungen, Nachweis je Zahl) und Berichtsseite; `task app`
+- [x] Meilenstein 3: Agent-Schleife, deutscher Systemprompt, `task ask`, Evaluationsset mit 40 Fragen (`task eval`)
+
 ## Meilensteine
 
 1. **Daten (Tag 1):** Schema, Seed-Generator, Fixture-Daten für Tests. Fertig, wenn `task data` zweimal denselben Hash liefert.

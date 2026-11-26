@@ -1,0 +1,56 @@
+# Nachbestellvorschlag, Stichtag {{ as_of|datum }}
+
+Automatisch erstellt aus denselben Lese-Tools, die auch der Assistent nutzt. Alle Daten sind synthetisch.
+
+## Zusammenfassung
+
+- **{{ reorder.suggestion_count }} Artikel** {{ "liegt" if reorder.suggestion_count == 1 else "liegen" }} unter dem Meldebestand, geschätzter Einkaufswert **{{ reorder.total_est_cost_eur|eur }}**.
+- **{{ overdue.order_count }} {{ "Einkaufsbestellung ist" if overdue.order_count == 1 else "Einkaufsbestellungen sind" }}** überfällig, Wert {{ overdue.total_value_eur|eur }}.
+- Liefertreue {{ deliveries.period.start|datum }} bis {{ deliveries.period.end|datum }}: {{ deliveries.late_deliveries }} von {{ deliveries.deliveries_received }} Wareneingängen verspätet ({{ deliveries.late_share_pct|pct }}).
+- Ladenhüter (mindestens {{ slow.min_days_without_sale }} Tage ohne Verkauf): {{ slow.product_count }} Artikel mit Lagerwert {{ slow.total_stock_value_eur|eur }}.
+
+## Nachbestellvorschläge
+
+Regel: Tagesbedarf aus dem Zeitraum {{ reorder.demand_window.start|datum }} bis {{ reorder.demand_window.end|datum }}. Meldebestand = Tagesbedarf × (Lieferzeit + {{ reorder.safety_days }} Tage Sicherheit). Die Bestellmenge deckt zusätzlich {{ reorder.target_extra_days }} Tage und ist auf die Mindestbestellmenge aufgerundet.
+
+{% if reorder.suggestions %}
+| Artikel | Bezeichnung | Lieferant | Verfügbar | Offen bestellt | Reichweite (Tage) | Lieferzeit (Tage) | Meldebestand | Vorschlag | Einheit | Kosten |
+|---|---|---|--:|--:|--:|--:|--:|--:|---|--:|
+{% for r in reorder.suggestions %}
+| {{ r.sku }} | {{ r.name }} | {{ r.supplier_name }} | {{ r.available_units|num }} | {{ r.open_po_units|num }} | {{ r.coverage_days|num(1) }} | {{ r.lead_time_days }} | {{ r.reorder_point_units|num }} | {{ r.suggested_qty_units|num }} | {{ r.unit }} | {{ r.est_cost_eur|eur }} |
+{% endfor %}
+{% else %}
+Kein Artikel liegt unter dem Meldebestand.
+{% endif %}
+
+## Überfällige Einkaufsbestellungen
+
+{% if overdue.purchase_orders %}
+| Bestellung | Lieferant | Bestellt am | Erwartet am | Tage überfällig | Wert |
+|---|---|---|---|--:|--:|
+{% for p in overdue.purchase_orders %}
+| {{ p.po_no }} | {{ p.supplier_name }} | {{ p.order_date|datum }} | {{ p.expected_date|datum }} | {{ p.days_overdue }} | {{ p.total_value_eur|eur }} |
+{% endfor %}
+{% else %}
+Keine überfälligen Bestellungen.
+{% endif %}
+
+## Liefertreue je Lieferant
+
+| Lieferant | Wareneingänge | davon verspätet | Quote | Ø Verspätung (Tage) | offen und überfällig |
+|---|--:|--:|--:|--:|--:|
+{% for s in deliveries.suppliers %}
+| {{ s.supplier_name }} | {{ s.deliveries_received }} | {{ s.late_deliveries }} | {{ s.late_share_pct|pct }} | {{ s.avg_delay_days_when_late|num(1) }} | {{ s.open_overdue_orders }} |
+{% endfor %}
+
+## Größte Ladenhüter
+
+{% if slow.products %}
+| Artikel | Bezeichnung | Letzter Verkauf | Bestand | Einheit | Lagerwert |
+|---|---|---|--:|---|--:|
+{% for p in slow.products %}
+| {{ p.sku }} | {{ p.name }} | {{ p.last_sale_date|datum }} | {{ p.on_hand_units|num }} | {{ p.unit }} | {{ p.stock_value_eur|eur }} |
+{% endfor %}
+{% else %}
+Keine Ladenhüter.
+{% endif %}

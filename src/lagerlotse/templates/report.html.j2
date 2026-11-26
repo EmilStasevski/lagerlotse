@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nachbestellvorschlag {{ as_of|datum }}</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 72rem; padding: 0 1rem; color: #1f2937; }
+  h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; margin-top: 2rem; }
+  .note { color: #6b7280; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .75rem; }
+  .kpi { border: 1px solid #e5e7eb; border-radius: .5rem; padding: .75rem 1rem; }
+  .kpi b { display: block; font-size: 1.3rem; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { padding: .35rem .5rem; border-bottom: 1px solid #e5e7eb; text-align: left; white-space: nowrap; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<h1>Nachbestellvorschlag, Stichtag {{ as_of|datum }}</h1>
+<p class="note">Automatisch erstellt aus denselben Lese-Tools, die auch der Assistent nutzt. Alle Daten sind synthetisch.</p>
+
+<div class="kpis">
+  <div class="kpi"><b>{{ reorder.suggestion_count }} Artikel</b>unter Meldebestand, ca. {{ reorder.total_est_cost_eur|eur }}</div>
+  <div class="kpi"><b>{{ overdue.order_count }} {{ "Bestellung" if overdue.order_count == 1 else "Bestellungen" }}</b>überfällig, {{ overdue.total_value_eur|eur }}</div>
+  <div class="kpi"><b>{{ deliveries.late_share_pct|pct }}</b>verspätete Wareneingänge ({{ deliveries.late_deliveries }} von {{ deliveries.deliveries_received }})</div>
+  <div class="kpi"><b>{{ slow.total_stock_value_eur|eur }}</b>Lagerwert in {{ slow.product_count }} Ladenhütern</div>
+</div>
+
+<h2>Nachbestellvorschläge</h2>
+<p class="note">Tagesbedarf aus {{ reorder.demand_window.start|datum }} bis {{ reorder.demand_window.end|datum }}; Meldebestand = Tagesbedarf × (Lieferzeit + {{ reorder.safety_days }} Tage); Bestellmenge deckt zusätzlich {{ reorder.target_extra_days }} Tage, aufgerundet auf die Mindestbestellmenge.</p>
+{% if reorder.suggestions %}
+<div class="table-wrap"><table>
+  <tr><th>Artikel</th><th>Bezeichnung</th><th>Lieferant</th><th class="n">Verfügbar</th><th class="n">Offen bestellt</th><th class="n">Reichweite (Tage)</th><th class="n">Lieferzeit (Tage)</th><th class="n">Meldebestand</th><th class="n">Vorschlag</th><th>Einheit</th><th class="n">Kosten</th></tr>
+  {% for r in reorder.suggestions %}
+  <tr><td>{{ r.sku }}</td><td>{{ r.name }}</td><td>{{ r.supplier_name }}</td><td class="n">{{ r.available_units|num }}</td><td class="n">{{ r.open_po_units|num }}</td><td class="n">{{ r.coverage_days|num(1) }}</td><td class="n">{{ r.lead_time_days }}</td><td class="n">{{ r.reorder_point_units|num }}</td><td class="n"><b>{{ r.suggested_qty_units|num }}</b></td><td>{{ r.unit }}</td><td class="n">{{ r.est_cost_eur|eur }}</td></tr>
+  {% endfor %}
+</table></div>
+{% else %}
+<p>Kein Artikel liegt unter dem Meldebestand.</p>
+{% endif %}
+
+<h2>Überfällige Einkaufsbestellungen</h2>
+{% if overdue.purchase_orders %}
+<div class="table-wrap"><table>
+  <tr><th>Bestellung</th><th>Lieferant</th><th>Bestellt am</th><th>Erwartet am</th><th class="n">Tage überfällig</th><th class="n">Wert</th></tr>
+  {% for p in overdue.purchase_orders %}
+  <tr><td>{{ p.po_no }}</td><td>{{ p.supplier_name }}</td><td>{{ p.order_date|datum }}</td><td>{{ p.expected_date|datum }}</td><td class="n">{{ p.days_overdue }}</td><td class="n">{{ p.total_value_eur|eur }}</td></tr>
+  {% endfor %}
+</table></div>
+{% else %}
+<p>Keine überfälligen Bestellungen.</p>
+{% endif %}
+
+<h2>Liefertreue je Lieferant ({{ deliveries.period.start|datum }} bis {{ deliveries.period.end|datum }})</h2>
+<div class="table-wrap"><table>
+  <tr><th>Lieferant</th><th class="n">Wareneingänge</th><th class="n">davon verspätet</th><th class="n">Quote</th><th class="n">Ø Verspätung (Tage)</th><th class="n">offen und überfällig</th></tr>
+  {% for s in deliveries.suppliers %}
+  <tr><td>{{ s.supplier_name }}</td><td class="n">{{ s.deliveries_received }}</td><td class="n">{{ s.late_deliveries }}</td><td class="n">{{ s.late_share_pct|pct }}</td><td class="n">{{ s.avg_delay_days_when_late|num(1) }}</td><td class="n">{{ s.open_overdue_orders }}</td></tr>
+  {% endfor %}
+</table></div>
+
+<h2>Größte Ladenhüter (mindestens {{ slow.min_days_without_sale }} Tage ohne Verkauf)</h2>
+{% if slow.products %}
+<div class="table-wrap"><table>
+  <tr><th>Artikel</th><th>Bezeichnung</th><th>Letzter Verkauf</th><th class="n">Bestand</th><th>Einheit</th><th class="n">Lagerwert</th></tr>
+  {% for p in slow.products %}
+  <tr><td>{{ p.sku }}</td><td>{{ p.name }}</td><td>{{ p.last_sale_date|datum }}</td><td class="n">{{ p.on_hand_units|num }}</td><td>{{ p.unit }}</td><td class="n">{{ p.stock_value_eur|eur }}</td></tr>
+  {% endfor %}
+</table></div>
+{% else %}
+<p>Keine Ladenhüter.</p>
+{% endif %}
+</body>
+</html>

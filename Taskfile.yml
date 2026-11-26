@@ -2,21 +2,31 @@ version: "3"
 
 tasks:
   setup:
-    desc: Install dependencies
+    desc: Install dependencies and git hooks
     cmds:
       - uv sync
+      - uv run pre-commit install
   up:
-    desc: Start postgres and metabase (app is added in milestone 4)
+    desc: Build and start postgres, app (http://localhost:8000) and metabase (http://localhost:3000)
     cmds:
-      - docker compose up -d
+      - docker compose up -d --build --wait
+  db:
+    desc: Start only postgres (enough for data, tests and report)
+    cmds:
+      - docker compose up -d --wait postgres
   down:
     cmds:
       - docker compose down
+  app:
+    desc: Run the web app locally with reload on http://localhost:8000
+    cmds:
+      - uv run uvicorn --factory lagerlotse.api.app:app_factory --reload --port 8000
   data:
-    desc: Create schema and seed synthetic data (added in milestone 1)
+    desc: Create schema and seed synthetic data (deterministic, prints a content hash)
     cmds:
       - uv run python -m lagerlotse.data.seed
   test:
+    desc: Run tests (needs postgres, see `task db`)
     cmds:
       - uv run pytest
   lint:
@@ -24,10 +34,18 @@ tasks:
       - uv run ruff check .
       - uv run ruff format --check .
       - uv run mypy
+  ask:
+    desc: 'Ask the agent one question, e.g. task ask -- "Welche Kunden ...?" (needs ANTHROPIC_API_KEY)'
+    cmds:
+      - uv run python -m lagerlotse.agent.cli {{.CLI_ARGS}}
   eval:
     desc: Run the agent evaluation set (needs ANTHROPIC_API_KEY)
     cmds:
       - uv run python -m lagerlotse.agent.eval
+  dashboard:
+    desc: Create the Metabase dashboard from dashboards/metabase.yaml (needs `task up` and `task data`)
+    cmds:
+      - uv run python scripts/metabase_setup.py
   report:
     desc: Generate weekly report and README tables from results/
     cmds:

@@ -1,0 +1,37 @@
+{% set checks = r.verification.checks %}
+{% set misses = r.verification.mismatches %}
+<article class="turn">
+  <div class="q"><strong>Frage:</strong> {{ q }}</div>
+  <div class="a">{{ html }}</div>
+
+  {% if r.status == "error" %}
+    <span class="badge unverified">Technischer Fehler, bitte später erneut versuchen</span>
+  {% elif r.status == "incomplete" %}
+    <span class="badge unverified">Antwort unvollständig (zu viele Schritte)</span>
+  {% elif r.verification.status == "verified" %}
+    <span class="badge verified">✓ Alle {{ checks|length }} Zahlen sind durch Abfrage-Ergebnisse belegt</span>
+  {% elif r.verification.status == "unverified" %}
+    <span class="badge unverified">⚠ Ungeprüft: {{ misses|length }} von {{ checks|length }} Zahlen ohne Beleg
+      ({{ misses|map(attribute="text")|join(", ") }}) – bitte nicht ungeprüft weitergeben</span>
+  {% else %}
+    <span class="badge no_numbers">Keine Zahlen in der Antwort</span>
+  {% endif %}
+
+  {% if r.tool_calls or checks %}
+  <details>
+    <summary>Wie wurde das geprüft?</summary>
+    {% for c in r.tool_calls %}
+      <div><strong>{{ c.name }}</strong>{% if c.error %} – Fehler: {{ c.error }}{% endif %}</div>
+      <pre>{{ c.input|tojson }}</pre>
+    {% endfor %}
+    {% if checks %}
+    <div class="table-scroll"><table>
+      <tr><th>Zahl in der Antwort</th><th>Beleg</th></tr>
+      {% for c in checks %}
+      <tr><td>{{ c.text }}</td><td>{% if c.matched %}{{ c.source }}{% else %}<strong>kein Beleg</strong>{% endif %}</td></tr>
+      {% endfor %}
+    </table></div>
+    {% endif %}
+  </details>
+  {% endif %}
+</article>

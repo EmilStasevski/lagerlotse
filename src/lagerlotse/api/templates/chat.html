@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  #verlauf { display: flex; flex-direction: column; gap: 1rem; margin: 1.5rem 0; }
+  .ask { position: sticky; bottom: 0; background: var(--bg); padding: .75rem 0 1rem;
+         border-top: 1px solid var(--line); }
+  .ask form { display: flex; gap: .5rem; }
+  .ask input { flex: 1; min-width: 0; }
+  .examples { display: flex; flex-wrap: wrap; gap: .4rem; margin: .75rem 0 0; }
+  .examples button { font-size: .85rem; padding: .3rem .6rem; }
+  .intro { background: var(--panel); border: 1px solid var(--line); border-radius: .75rem;
+           padding: 1rem 1.25rem; margin-top: 1.5rem; }
+  .intro ul { margin: .4rem 0 0; padding-left: 1.2rem; }
+  .turn { background: var(--panel); border: 1px solid var(--line); border-radius: .75rem;
+          padding: 1rem 1.25rem; }
+  .turn .q { color: var(--muted); margin-bottom: .5rem; }
+  .turn .a > :first-child { margin-top: 0; }
+  .turn .a table { display: block; overflow-x: auto; max-width: 100%; }
+  .turn mark { background: var(--mark); color: inherit; padding: 0 .15rem; border-radius: .2rem; }
+  .badge { display: inline-block; font-size: .85rem; padding: .25rem .6rem; border-radius: 1rem;
+           margin-top: .5rem; }
+  .badge.verified { background: var(--ok-bg); color: var(--ok); }
+  .badge.unverified { background: var(--warn-bg); color: var(--warn); font-weight: 600; }
+  .badge.no_numbers { background: var(--info-bg); color: var(--muted); }
+  .turn details { margin-top: .5rem; font-size: .88rem; }
+  .turn details pre { white-space: pre-wrap; margin: .2rem 0 .6rem; color: var(--muted); }
+  .htmx-indicator { display: none; }
+  .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline; }
+</style>
+
+<section class="intro">
+  <strong>Fragen Sie auf Deutsch.</strong> Jede Zahl in einer Antwort wird gegen die Ergebnisse
+  der Datenbank-Abfragen geprüft; nicht belegte Zahlen werden markiert.
+  <span class="muted">Datenstand {{ as_of|datum }}. Alle Daten sind synthetisch.</span>
+  <ul class="muted">{% for c in capabilities %}<li>{{ c }}</li>{% endfor %}</ul>
+</section>
+
+<div id="verlauf">
+  {% for r in turns %}{% set q = r.question %}{% set html = render_answer(r) %}
+  {% include "_turn.html" %}
+  {% endfor %}
+</div>
+
+<section class="ask">
+  <form hx-post="/frage" hx-target="#verlauf" hx-swap="beforeend show:bottom"
+        hx-disabled-elt="find button, find input" hx-indicator="#denkt"
+        hx-on::after-request="if (event.detail.successful) this.reset()">
+    <input type="text" name="frage" maxlength="500" required autofocus autocomplete="off"
+           placeholder="z. B. Welche Artikel müssen wir nachbestellen?" aria-label="Ihre Frage">
+    <button class="primary" type="submit">Fragen</button>
+  </form>
+  <div class="examples">
+    {% for q in examples %}
+    <button type="button" hx-post="/frage" hx-vals='{{ {"frage": q}|tojson }}'
+            hx-target="#verlauf" hx-swap="beforeend show:bottom" hx-indicator="#denkt">{{ q }}</button>
+    {% endfor %}
+    <form method="post" action="/neu" style="margin-left:auto">
+      <button type="submit" class="muted">Neues Gespräch</button>
+    </form>
+  </div>
+  <p id="denkt" class="htmx-indicator muted">Lagerlotse fragt die Daten ab und prüft die Zahlen …</p>
+</section>
+{% endblock %}
